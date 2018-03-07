@@ -30,7 +30,9 @@
 import importlib
 
 PROVIDERS = {
-    'Elasticsearch': 'pygeoapi.provider.elasticsearch.ElasticsearchProvider'
+    'CSV': 'pygeoapi.provider.csv.CSVProvider',
+    'Elasticsearch': 'pygeoapi.provider.elasticsearch.ElasticsearchProvider',
+    'GeoJSON': 'pygeoapi.provider.geojson.GeoJSONProvider'
 }
 
 
@@ -38,7 +40,7 @@ def load_provider(provider_obj):
     """
     loads provider by name
 
-    :param name: name of provider
+    :param provider_obj: provider definition dictionary
 
     :returns: provider object
     """
