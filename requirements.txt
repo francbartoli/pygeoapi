@@ -1,4 +1,5 @@
 click
+connexion
 elasticsearch
 flask
 flask_cors

@@ -1,6 +1,7 @@
 # =================================================================
 #
 # Authors: Tom Kralidis <tomkralidis@gmail.com>
+#          Norman Barker <norman.barker@gmail.com>
 #
 # Copyright (c) 2018 Tom Kralidis
 #
@@ -27,45 +28,11 @@
 #
 # =================================================================
 
-import importlib
-import logging
+import os
 
-LOGGER = logging.getLogger(__name__)
+import yaml
 
-PROVIDERS = {
-    'CSV': 'pygeoapi.provider.csv.CSVProvider',
-    'Elasticsearch': 'pygeoapi.provider.elasticsearch.ElasticsearchProvider',
-    'GeoJSON': 'pygeoapi.provider.geojson.GeoJSONProvider'
-}
+with open(os.environ.get('PYGEOAPI_CONFIG')) as ff:
+    settings = yaml.load(ff)
 
-
-def load_provider(provider_obj):
-    """
-    loads provider by name
-
-    :param provider_obj: provider definition dictionary
-
-    :returns: provider object
-    """
-
-    LOGGER.debug('Providers: {}'.format(PROVIDERS))
-    provider_name = provider_obj['type']
-    if provider_name not in PROVIDERS.keys():
-        msg = 'Provider {} not found'.format(provider_name)
-        LOGGER.exception(msg)
-        raise InvalidProviderError(msg)
-
-    packagename, classname = PROVIDERS[provider_name].rsplit('.', 1)
-    LOGGER.debug('package name: {}'.format(packagename))
-    LOGGER.debug('class name: {}'.format(classname))
-
-    module = importlib.import_module(packagename)
-    class_ = getattr(module, classname)
-    provider = class_(provider_obj)
-    return provider
-
-
-class InvalidProviderError(Exception):
-    """invalid provider"""
-
-    pass
+settings['swagger'] = os.environ.get('PYGEOAPI_SWAGGER')

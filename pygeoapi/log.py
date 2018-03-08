@@ -27,45 +27,46 @@
 #
 # =================================================================
 
-import importlib
 import logging
+import sys
+
+from pygeoapi.config import settings
 
 LOGGER = logging.getLogger(__name__)
 
-PROVIDERS = {
-    'CSV': 'pygeoapi.provider.csv.CSVProvider',
-    'Elasticsearch': 'pygeoapi.provider.elasticsearch.ElasticsearchProvider',
-    'GeoJSON': 'pygeoapi.provider.geojson.GeoJSONProvider'
-}
 
-
-def load_provider(provider_obj):
+def setup_logger():
     """
-    loads provider by name
+    Setup configuration
 
-    :param provider_obj: provider definition dictionary
-
-    :returns: provider object
+    :returns: void (creates logging instance)
     """
 
-    LOGGER.debug('Providers: {}'.format(PROVIDERS))
-    provider_name = provider_obj['type']
-    if provider_name not in PROVIDERS.keys():
-        msg = 'Provider {} not found'.format(provider_name)
-        LOGGER.exception(msg)
-        raise InvalidProviderError(msg)
+    log_format = \
+        '[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s'
 
-    packagename, classname = PROVIDERS[provider_name].rsplit('.', 1)
-    LOGGER.debug('package name: {}'.format(packagename))
-    LOGGER.debug('class name: {}'.format(classname))
+    loglevels = {
+        'CRITICAL': logging.CRITICAL,
+        'ERROR': logging.ERROR,
+        'WARNING': logging.WARNING,
+        'INFO': logging.INFO,
+        'DEBUG': logging.DEBUG,
+        'NOTSET': logging.NOTSET,
+    }
+    formatter = logging.Formatter(log_format)
 
-    module = importlib.import_module(packagename)
-    class_ = getattr(module, classname)
-    provider = class_(provider_obj)
-    return provider
+    log_handler = logging.NullHandler()
 
+    if 'level' in settings['logging']:
+        loglevel = loglevels[settings['logging']['level']]
+        log_handler = logging.StreamHandler(sys.stdout)
 
-class InvalidProviderError(Exception):
-    """invalid provider"""
+    if 'logfile' in settings['logging']:
+        log_handler = logging.FileHandler(settings['logging']['logfile'])
 
-    pass
+    log_handler.setLevel(loglevel)
+    log_handler.setFormatter(formatter)
+
+    LOGGER.addHandler(log_handler)
+    LOGGER.debug('Logging initialized')
+    return
