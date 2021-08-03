@@ -283,7 +283,7 @@ def get_collection_tiles_data(collection_id=None, tileMatrixSetId=None,
         request, collection_id, tileMatrixSetId, tileMatrix, tileRow, tileCol))
 
 
-@BLUEPRINT.route('/processes')
+@BLUEPRINT.route('/processes', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @BLUEPRINT.route('/processes/<process_id>')
 def get_processes(process_id=None):
     """
@@ -293,7 +293,18 @@ def get_processes(process_id=None):
 
     :returns: HTTP response
     """
-    return get_response(api_.describe_processes(request, process_id))
+    if process_id:
+        return get_response(api_.describe_processes(
+            request, process_id))
+    else:
+        if request.method == 'POST':
+            return get_response(api_.create_process(request))
+        elif request.method == 'PUT':
+            pass
+        elif request.method == 'DELETE':
+            pass
+        else:
+            return get_response(api_.describe_processes(request))
 
 
 @BLUEPRINT.route('/processes/<process_id>/jobs')

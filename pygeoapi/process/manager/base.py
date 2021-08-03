@@ -54,6 +54,7 @@ class BaseManager:
         self.name = manager_def['name']
         self.is_async = False
         self.connection = manager_def.get('connection', None)
+        self.table = manager_def.get('table', None)
         self.output_dir = manager_def.get('output_dir', None)
 
     def get_jobs(self, process_id=None, status=None):
@@ -125,6 +126,17 @@ class BaseManager:
         :param job_id: job identifier
 
         :returns: `bool` of status result
+        """
+
+        raise NotImplementedError()
+
+    def add_process(self, process_metadata):
+        """
+        Add a process
+
+        :param process_metadata: `dict` of process metadata
+
+        :returns: `str` added process identifier
         """
 
         raise NotImplementedError()

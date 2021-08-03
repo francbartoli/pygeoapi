@@ -50,6 +50,7 @@ from dateutil.parser import parse as dateparse
 import pytz
 from shapely.errors import WKTReadingError
 from shapely.wkt import loads as shapely_loads
+from pydantic import ValidationError
 
 from pygeoapi import __version__, l10n
 from pygeoapi.formatter.base import FormatterSerializationError
@@ -67,6 +68,7 @@ from pygeoapi.provider.tile import (ProviderTileNotFoundError,
                                     ProviderTileQueryError,
                                     ProviderTilesetIdNotFoundError)
 from pygeoapi.models.cql import CQLModel
+from pygeoapi.models.ogcapppkg import OGCAppPackage
 from pygeoapi.util import (dategetter, DATETIME_FORMAT,
                            filter_dict_by_key_value, get_provider_by_type,
                            get_provider_default, get_typed_value, JobStatus,
@@ -2478,6 +2480,115 @@ class API:
             return headers, 200, response
 
         return headers, 200, to_json(response, self.pretty_print)
+
+    @pre_process
+    @jsonldify
+    def create_process(self, request: Union[
+            APIRequest, Any]) -> Tuple[dict, int, str]:
+        """
+        Create a process definition
+
+        :param request: A request object
+
+        :returns: tuple of headers, status code, content
+        """
+
+        request_headers = request.headers
+
+        if not request.is_valid():
+            return self.get_format_exception(request)
+
+        # Responses are always in US English only
+        headers = request.get_response_headers(SYSTEM_LOCALE)
+
+        processes_config = filter_dict_by_key_value(
+            self.config['resources'], 'type', 'process'
+        )
+
+        if 'transactions' not in processes_config:
+            msg = 'Transactions are not enabled'
+            return self.get_exception(
+                404, headers, request.format, 'NoTransactionProcess', msg)
+
+        if not self.manager:
+            msg = 'Process manager is undefined'
+            return self.get_exception(
+                500, headers, request.format, 'NoApplicableCode', msg)
+
+        process = load_plugin('process',
+                              processes_config['transactions']['processor'])
+
+        LOGGER.debug('Processing headers')
+
+        # check ogcapppkg content type
+        LOGGER.debug('Processing request content-type header')
+        if (request_headers.get(
+            'Content-Type') or request_headers.get(
+                'content-type')) != 'application/ogcapppkg+json':
+            msg = ('Invalid body content-type')
+            return self.get_exception(
+                400, headers, request.format, 'InvalidHeaderValue', msg)
+
+        LOGGER.debug('Processing body')
+
+        if not request.data:
+            msg = 'missing request data'
+            return self.get_exception(
+                400, headers, request.format, 'MissingParameterValue', msg)
+
+        try:
+            # Parse bytes data, if applicable
+            data = request.data.decode()
+            LOGGER.debug(data)
+            data_ = OGCAppPackage.parse_raw(data)
+        except ValidationError as err:
+            # Input does not appear to be valid JSON
+            LOGGER.error(err)
+            msg = 'invalid request data'
+            return self.get_exception(
+                422, headers, request.format, 'InvalidBodyValue', msg)
+        except Exception as ex:
+            LOGGER.error(ex)
+            msg = 'invalid request data'
+            return self.get_exception(
+                400, headers, request.format, 'InvalidParameterValue', msg)
+
+        process_id = str(uuid.uuid1())
+        url = '{}/processes/{}'.format(
+            self.config['server']['url'], process_id)
+
+        headers['Location'] = url
+
+        try:
+            data_dict = {}
+            data_dict['id'] = data_.processDescription.id
+            data_dict['version'] = data_.processDescription.version
+            data_dict['title'] = data_.processDescription.title
+            data_dict['description'] = data_.processDescription.description
+            data_dict['metadata'] = data_.processDescription.metadata
+            data_dict[
+                'additionalParameters'
+            ] = data_.processDescription.additionalParameters
+            data_dict['inputs'] = data_.processDescription.inputs
+            data_dict['outputs'] = data_.processDescription.outputs
+            data_dict['jobControlOptions'] = [item.value for item in data_.processDescription.jobControlOptions] # noqa
+            data_dict['outputTransmission'] = [item.value for item in data_.processDescription.outputTransmission] # noqa
+            data_dict['links'] = [
+                item.dict() for item in data_.processDescription.links]
+            LOGGER.debug('Creating process')
+            process, mime_type, status = self.manager.add_process(
+                process_id, data_dict)
+        except ProcessorExecuteError as err:
+            LOGGER.error(err)
+            msg = 'Processing error'
+            return self.get_exception(
+                500, headers, request.format, 'NoApplicableCode', msg)
+
+        headers['Content-Type'] = mime_type
+        http_status = status
+        response = process
+
+        return headers, http_status, to_json(response, self.pretty_print)
 
     @pre_process
     def get_process_jobs(self, request: Union[APIRequest, Any],
