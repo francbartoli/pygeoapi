@@ -155,26 +155,28 @@ async def collection_queryables(request: Request, collection_id=None):
     return get_response(api_.get_collection_queryables(request, collection_id))
 
 
-@app.route('/collections/{collection_id:path}/tiles')
-@app.route('/collections/{collection_id:path}/tiles/')
-async def get_collection_tiles(request: Request, collection_id=None):
+@app.route('/collections/{collection_id:path}/{tiles:path}/{tileMatrixSetId}/metadata')
+async def get_collection_tiles_metadata(request: Request, collection_id=None, tileMatrixSetId=None):
     """
-    OGC open api collections tiles access point
+    OGC open api collection tiles service metadata
 
     :param request: Starlette Request instance
     :param collection_id: collection identifier
+    :param tileMatrixSetId: identifier of tile matrix set
 
-    :returns: Starlette HTTP Response
+    :returns: HTTP response
     """
     if 'collection_id' in request.path_params:
         collection_id = request.path_params['collection_id']
-    return get_response(api_.get_collection_tiles(request, collection_id))
+    if 'tileMatrixSetId' in request.path_params:
+        tileMatrixSetId = request.path_params['tileMatrixSetId']
+
+    return get_response(api_.get_collection_tiles_metadata(
+        request, collection_id, tileMatrixSetId))
 
 
-@app.route('/collections/{collection_id:path}/tiles/\
-    {tileMatrixSetId}/{tile_matrix}/{tileRow}/{tileCol}')
-@app.route('/collections/{collection_id:path}/tiles/\
-    {tileMatrixSetId}/{tile_matrix}/{tileRow}/{tileCol}/')
+@app.route('/collections/{collection_id:path}/{tiles:path}/{tileMatrixSetId}/{tile_matrix}/{tileRow}/{tileCol}')
+@app.route('/collections/{collection_id:path}/{tiles:path}/{tileMatrixSetId}/{tile_matrix}/{tileRow}/{tileCol}/')
 async def get_collection_items_tiles(request: Request, collection_id=None,
                                      tileMatrixSetId=None, tile_matrix=None,
                                      tileRow=None, tileCol=None):
@@ -190,7 +192,6 @@ async def get_collection_items_tiles(request: Request, collection_id=None,
 
     :returns: HTTP response
     """
-
     if 'collection_id' in request.path_params:
         collection_id = request.path_params['collection_id']
     if 'tileMatrixSetId' in request.path_params:
@@ -201,9 +202,26 @@ async def get_collection_items_tiles(request: Request, collection_id=None,
         tileRow = request.path_params['tileRow']
     if 'tileCol' in request.path_params:
         tileCol = request.path_params['tileCol']
+
     return get_response(api_.get_collection_tiles_data(
         request, collection_id, tileMatrixSetId, tile_matrix,
         tileRow, tileCol))
+
+
+@app.route('/collections/{collection_id:path}/tiles')
+@app.route('/collections/{collection_id:path}/tiles/')
+async def get_collection_tiles(request: Request, collection_id=None):
+    """
+    OGC open api collections tiles access point
+
+    :param request: Starlette Request instance
+    :param collection_id: collection identifier
+
+    :returns: Starlette HTTP Response
+    """
+    if 'collection_id' in request.path_params:
+        collection_id = request.path_params['collection_id']
+    return get_response(api_.get_collection_tiles(request, collection_id))
 
 
 @app.route('/collections/{collection_id:path}/items', methods=['GET', 'POST'])
@@ -412,7 +430,6 @@ async def get_collection_edr_query(request: Request, collection_id=None, instanc
 
     :returns: HTTP response
     """
-
     if 'collection_id' in request.path_params:
         collection_id = request.path_params['collection_id']
 
@@ -439,6 +456,7 @@ async def collections(request: Request, collection_id=None):
     """
     if 'collection_id' in request.path_params:
         collection_id = request.path_params['collection_id']
+
     return get_response(api_.describe_collections(request, collection_id))
 
 
