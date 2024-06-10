@@ -155,6 +155,10 @@ def test_query_with_property_filter(config):
     assert feature_collection['numberMatched'] == 14776
     assert feature_collection['numberReturned'] == 50
 
+    feature_collection = p.query(limit=1000, offset=13000)
+    assert feature_collection['numberMatched'] == 14776
+    assert feature_collection['numberReturned'] == 1000
+
 
 def test_query_with_config_properties(config):
     """

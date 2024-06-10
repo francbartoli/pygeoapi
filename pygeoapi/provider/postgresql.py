@@ -155,8 +155,10 @@ class PostgreSQLProvider(BaseProvider):
                        .options(selected_properties)
                        .offset(offset))
 
-            matched = results.count()
-            if limit < matched:
+            # temporary solution to mimic https://github.com/geopython/pygeoapi/pull/1628
+            counted = results.count()
+            matched = offset + counted
+            if limit < counted:
                 returned = limit
             else:
                 returned = matched
