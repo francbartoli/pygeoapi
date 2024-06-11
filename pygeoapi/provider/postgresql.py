@@ -161,7 +161,10 @@ class PostgreSQLProvider(BaseProvider):
             if limit < counted:
                 returned = limit
             else:
-                returned = matched
+                if matched < offset + limit:
+                    returned = counted
+                else:
+                    returned = matched
 
             LOGGER.debug(f'Found {matched} result(s)')
 
